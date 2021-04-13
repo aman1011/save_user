@@ -40,19 +40,31 @@ def lambda_handler(event, context):
 
 def write_movement_to_file(sensor_payload):
     with open('database.txt', 'a') as phile:
-        line_to_write = sensor_payload['occupant'] + "," + sensor_payload['room'] + "," + sensor_payload["time"]
+        # We want to write the room co-ordinates (a native python list)
+        # into a comma separated list.
+        # so a typical entry in database.txt would look like
+        # user 1,2 2021-05-13T04:22:01.002Z
+        # Note that the sensor info is space separated
+        room_coordinates = sensor_payload['room']
+        room_coord_content = ''
+        for index in room_coordinates:
+            room_coord_content = room_coordinates + index + ','
+
+        room_coord_content = room_coord_content[:-1]
+
+        line_to_write = sensor_payload['occupant'] + " " + room_coord_content + " " + sensor_payload["time"]
         phile.write(line_to_write)
 
 
-def get_room(organism):
+def get_room(occupant):
     # Get the last entry with user in it.
     with open('database.txt', 'r') as phile:
         lines = phile.read()
         user_room = None
         for line in reversed(lines):
-            if re.match(organism, line):
+            if re.match(occupant, line):
                 # return the mid element after splitting.
-                user_room = line.split(',')[1]
+                user_room = line.split(' ')[1]
                 break
 
         return user_room
@@ -75,8 +87,8 @@ class EscapeFromBeast:
 
         # let i,j denote user co-ordinates
         # let a,b denote beast co-ordinates.
-        i,j = self.user_room
-        a,b = self.beast_room
+        i, j = self.user_room.split(',')
+        a, b = self.beast_room.split(',')
 
         safe = None
         if i == a:
